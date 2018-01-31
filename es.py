@@ -9,7 +9,10 @@ import random
 import torch
 from torch.autograd import Variable, grad
 
+from scipy.optimize import minimize_scalar, minimize
+
 from torch_model import esModel
+import optimizers
 
 @ray.remote
 class Worker:
@@ -57,8 +60,70 @@ class Worker:
 			scaling[scaling==0]=1.0
 			scaling[scaling<0.01]=0.01
 			delta /= scaling
-			final_delta = np.clip(delta,-3,3)
-			return final_delta
+			return np.clip(delta,-3,3)
+		elif method == 'R':
+			self.model.set_weights_flat(old_w)
+			sz = min(100,len(self.v_states))
+			v_states = np.array(random.sample(self.v_states,sz),dtype=np.float32)
+			v_states = v_states / (np.linalg.norm(v_states)+1e-12)
+			v_states = Variable(torch.from_numpy(v_states),requires_grad=False)
+			old_policy = self.model(v_states)
+
+			# a fast method which does often leads to a better performance
+			search_rounds = 7
+			delta = p
+			delta = delta / np.sqrt((delta**2).sum())
+			threshold = self.config['sigma']
+			old_policy = np.array(old_policy.data.numpy(),dtype=np.float32)
+			def search_error(x):
+				final_delta = delta * x
+				final_delta = np.clip(final_delta,-3,3)
+				new_w = old_w + final_delta
+				self.model.set_weights_flat(new_w)
+				output = self.model(v_states).data.numpy().astype(np.float32)
+				change = np.sqrt(((output - old_policy)**2).sum(1)).mean()
+				return np.sqrt(change-threshold)**2
+			mult = minimize_scalar(search_error,bounds=(0,self.config['sigma'],3),tol=0.01**2,options={'maxiter':search_rounds})
+			delta *= mult.x
+			return np.clip(delta,-3,3)
+		elif method == 'R-ALT':
+			self.model.set_weights_flat(old_w)
+			sz = min(100,len(self.v_states))
+			v_states = np.array(random.sample(self.v_states,sz),dtype=np.float32)
+			v_states = v_states / (np.linalg.norm(v_states)+1e-12)
+			v_states = Variable(torch.from_numpy(v_states),requires_grad=False)
+			old_policy = self.model(v_states)
+
+			# this method is really slow and doens't seem to improve performance
+			search_rounds = 7
+			delta = p
+			delta = delta / np.sqrt((delta**2).sum())
+			threshold = self.config['sigma']
+			old_policy = np.array(old_policy.data.numpy(),dtype=np.float32)
+			new_w = np.zeros(self.model.size)
+			def search_error_alt(x):
+				count = 0
+				final_delta = delta
+				for i,p in enumerate(self.model.parameters()):
+					sz = p.data.numpy().flatten().shape[0]
+					final_delta[count:count+sz] = delta[count:count+sz] * x[i]
+					count += sz
+				new_w = old_w + final_delta
+				self.model.set_weights_flat(new_w)
+				output = self.model(v_states).data.numpy().astype(np.float32)
+				change = np.sqrt(((output-old_policy)**2).sum(1)).mean()
+				return np.sqrt(change-threshold)**2
+			bounds = np.ones((self.model.num_layers,2))
+			bounds[:,0] = 1e-6*bounds[:,0]
+			bounds[:,1] = 3*bounds[:,0]
+			x0 = self.config['sigma']*np.ones(self.model.num_layers)
+			mult = minimize(search_error_alt,x0=x0,tol=0.01**2,bounds=bounds,options={'maxiter':search_rounds})
+			count = 0
+			for i,p in enumerate(self.model.parameters()):
+				sz = p.data.numpy().flatten().shape[0]
+				delta[count:count+sz] *= mult.x[i]
+				count += sz
+			return np.clip(delta,-3,3)
 		else:
 			raise NotImplementedError(method)
 
@@ -69,7 +134,7 @@ class Worker:
 		rng = np.random.RandomState(seed)
 		population = rng.randn(self.config['pop_size'],self.model.size)
 		for i in range(self.config['pop_size']):
-			delta = self.mutate(population[i],weights,method='Plain')
+			delta = self.mutate(population[i],weights,method='R')
 			new_weights = weights + delta
 			rewards[i] = self.get_reward(new_weights)
 		# normalize rewards
@@ -82,6 +147,7 @@ class Master:
 	def __init__(self,config):
 		self.config = config
 		self.model = esModel(config['envName'])
+		self.optimizer = optimizers.Adam(self.model.get_weights_flat(),self.config['learning_rate'],beta1=0.9,beta2=0.999,epsilon=1e-08)
 
 	def get_reward(self,weights):
 		self.model.set_weights_flat(weights)
@@ -130,7 +196,9 @@ class Master:
 				# compute the gradient
 				grad = np.dot(rewards.T,population).T
 				# update the weights
-				self.weights = self.weights + self.config['learning_rate']/(self.config['pop_size']*self.config['sigma']) * grad
+				#self.weights = self.weights + self.config['learning_rate']/(self.config['pop_size']*self.config['sigma']) * grad
+				grad = 1.0/(self.config['pop_size']*self.config['sigma']) * grad
+				_, self.weights = self.optimizer.update(-grad)
 			# print the current reward
 			if (iteration+1) % print_step == 0:
 				curr_reward = self.get_reward(self.weights)

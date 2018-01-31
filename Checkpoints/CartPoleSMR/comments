@@ -1,0 +1,18 @@
+This is done with SM-R mutation, and standard optimizer
+sigma:0.1
+pop_size:50
+num_workers:3
+learning_rate:0.001
+
+h_size = [16] (meaning a connection between input layer to output with 16 connections)
+
+Results:
+150 iters with 112s runtime (wall clock)
+190 iters with 138s runtime (wall clock)
+40 iters with 21s runtime (wall clock)
+30 iters with 16s runtime (wall clock)
+
+Average:
+97 iters with 71.7s runtime (wall clock)
+
+It is observed that the perfect solution on the training set doesn't guarantee a perfect solution on test set. But the above results are only for perfect solutions on the test set. The average reward of all runs was about 170 on the test set with an average of 100 iterations which took around 80s.

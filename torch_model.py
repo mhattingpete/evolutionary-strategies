@@ -105,6 +105,13 @@ class esModel(nn.Module):
 			count += param.data.numpy().size
 		return count
 
+	@property
+	def num_layers(self):
+		count = 0
+		for param in self.parameters():
+			count += 1
+		return count
+
 	def get_action(self,state,training=True):
 		if training == True:
 			self.exploration = max(0,self.exploration - self.inital_exploration/self.exploration_dec_steps)

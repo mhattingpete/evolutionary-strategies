@@ -1,4 +1,4 @@
-This is done with plain mutation, and standard optimizer
+This is done with plain mutation, and Adam optimizer
 sigma:0.1
 pop_size:50
 num_workers:3

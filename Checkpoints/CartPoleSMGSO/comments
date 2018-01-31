@@ -1,4 +1,4 @@
-This is done with SM-G-SO mutation, and standard optimizer
+This is done with plain mutation, and Adam optimizer
 sigma:0.1
 pop_size:50
 num_workers:3
@@ -7,11 +7,12 @@ learning_rate:0.001
 h_size = [16] (meaning a connection between input layer to output with 16 connections)
 
 Results:
-x iters with ys runtime (wall clock)
-x iters with ys runtime (wall clock)
-x iters with ys runtime (wall clock)
+40 iters with 16s runtime (wall clock)
+130 iters with 60s runtime (wall clock)
+40 iters with 10s runtime (wall clock)
+60 iters with 27s runtime (wall clock)
 
 Average:
-x iters with ys runtime (wall clock)
+67 iters with 28.2s runtime (wall clock)
 
-It is observed that the perfect solution on the training set doesn't guarantee a perfect solution on test set. But the above results are only for perfect solutions on the test set. The average reward of all runs was about 150 on the test set with an average of 450 iterations.
+It is observed that the perfect solution on the training set doesn't guarantee a perfect solution on test set. But the above results are only for perfect solutions on the test set. The average reward of all runs was about 170 on the test set with an average of 140 iterations which took around 60s
