@@ -65,8 +65,6 @@ class esModel(nn.Module):
 		x = Variable(torch.from_numpy(x),requires_grad=False)
 		pred = self(x).data.numpy()
 		return pred[0].argmax()
-		#action_value = np.random.choice(pred[0],p=pred[0])
-		#return np.argmax(pred[0] == action_value)
 
 	def extract_grad(self):
 		tot_size = self.size

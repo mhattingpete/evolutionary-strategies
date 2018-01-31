@@ -27,5 +27,21 @@ def train():
 	# save the weights
 	agent.save(filename)
 
+def trainR():
+	avg_reward = 0.0
+	agent = None
+	while avg_reward != config['early_stop_reward']:
+		del agent
+		# define the agent
+		agent = Master(config)
+		# run the agent for a total of num_iters iterations
+		agent.train(num_iters=1000,print_step=10)
+		# run the agent on the enviroment and render
+		avg_reward = agent.play(episodes=10)
+	# filename to save the weights in
+	filename = config['envName']+'_weights_'+str(avg_reward)
+	# save the weights
+	agent.save(filename)
+
 if __name__ == '__main__':
-	train()
+	trainR()
