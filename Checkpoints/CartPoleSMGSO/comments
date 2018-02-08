@@ -7,7 +7,7 @@ learning_rate:0.001
 h_size = [16] (meaning a connection between input layer to output with 16 connections)
 
 Results:
-x iters with ys runtime (wall clock)
+180 iters with 334s runtime (wall clock)
 x iters with ys runtime (wall clock)
 x iters with ys runtime (wall clock)
 x iters with ys runtime (wall clock)
@@ -16,3 +16,22 @@ Average:
 x iters with ys runtime (wall clock)
 
 It is observed that the perfect solution on the training set doesn't guarantee a perfect solution on test set. But the above results are only for perfect solutions on the test set. The average reward of all runs was about z on the test set with an average of x iterations which took around ys
+
+for sigma = 0.03
+141, 430iters, 648s
+161, 250iters, 342s
+131, 610iters, 984s
+130, 450iters, 571s
+
+for sigma = 0.01
+195, 60iters, 112s
+135, 30iters, 41s
+187, 150iters, 286s
+160, 180iters, 261s
+
+for sigma = 0.003
+191, 110iters, 202s
+200, 180iters, 334s
+171, 80iters, 131s
+153, 490iters, 658s
+
